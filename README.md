@@ -52,6 +52,29 @@ A `trycloudflare.com` quick tunnel is only for a one-off test. The URL changes e
 
 ## Install on the ThinkCentre
 
+### MSI (agent + stack files)
+
+Use [`releases/ThinkCentreEndpoint-1.1.0.msi`](releases/ThinkCentreEndpoint-1.1.0.msi) on the ThinkCentre (run it **as Administrator**). Rebuild with `scripts/build-release.sh` if you change the agent.
+
+That installs to `C:\Program Files\ThinkCentre Endpoint\`, registers the **ThinkCentre Endpoint Agent** service, and turns on NIC Wake-on-LAN flags. Then:
+
+1. Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) if it is missing.
+2. Copy `.env.example` to `.env` in the install folder and set `POSTGRES_PASSWORD`.
+3. Admin PowerShell: `cd "C:\Program Files\ThinkCentre Endpoint"; .\scripts\setup-windows.ps1`
+4. Open the Start menu shortcut **ThinkCentre Endpoint** (`http://127.0.0.1:18765`). The token is in `%ProgramData%\ThinkCentreEndpoint\config.json`.
+5. In the console, click **Start stack**, then **Enable NIC wake**.
+6. Confirm BIOS: Wake on LAN, and After Power Loss = Power On.
+
+From the same console you can **reboot** the PC and **send a magic packet**. A packet sent *from this PC* only helps if it is still on the LAN (sleep). If the box is fully off, send the MAC from a phone on home Wi‑Fi or from another computer:
+
+```text
+thinkcentre-agent.exe wake --mac AA:BB:CC:DD:EE:FF
+```
+
+Put a second Cloudflare hostname on `http://host.docker.internal:18765` (see tunnel setup) so you can open the console from the same restrictive networks as Guacamole. Put Cloudflare Access in front of that hostname.
+
+### Manual (repo copy)
+
 Run PowerShell **as Administrator** from this repo:
 
 ```powershell
@@ -117,8 +140,12 @@ Do not use that URL as your daily endpoint.
 | `docker-compose.tunnel.yml` | `cloudflared` overlay (needs `CLOUDFLARE_TUNNEL_TOKEN`) |
 | `guacamole/init/` | Official Guacamole 1.6.0 schema plus ThinkCentre connection seeds |
 | `guacamole/connection-template.md` | RDP/VNC settings if you add connections by hand |
-| `scripts/setup-windows.ps1` | Home vs Pro, firewall, always-on power, UPnP off |
+| `scripts/setup-windows.ps1` | Home vs Pro, firewall, always-on power, UPnP off, WoL |
+| `scripts/enable-wol.ps1` | NIC magic-packet wake + BIOS checklist |
 | `scripts/setup-tunnel.ps1` | Save the named-tunnel token |
+| `scripts/build-release.sh` | Windows agent `.exe` + MSI |
+| `agent/` | Management service (status, stack, reboot, WoL) |
+| `installer/` | Internet shortcut used by the Start menu |
 | `cloudflare/config.yml.example` | Locally-managed tunnel (token method is preferred) |
 | `.env.example` | Secrets template |
 
@@ -130,9 +157,21 @@ docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
 
 ## Keep the box reachable
 
-- Leave the ThinkCentre powered; the setup script turns off sleep and hibernate on AC
+- Leave the ThinkCentre powered when you can; the setup script turns off sleep and hibernate on AC
+- Enable Wake on LAN in BIOS and in the agent console so a magic packet can bring it back
 - Do not put the NIC to sleep in Device Manager → network adapter → Power Management
 - UPnP is disabled on purpose. This design never uses it
+- Reboot from `http://127.0.0.1:18765` (or your manage hostname) when the desktop is stuck
+
+## Agent commands
+
+```text
+thinkcentre-agent.exe run              # foreground (dev)
+thinkcentre-agent.exe install          # Windows service
+thinkcentre-agent.exe uninstall
+thinkcentre-agent.exe enable-wol
+thinkcentre-agent.exe wake --mac AA:BB:CC:DD:EE:FF
+```
 
 ## Backup
 
@@ -154,6 +193,7 @@ Restore the archive into a new `postgres_data` volume only on first boot (init S
 - Prefer Cloudflare Access in front of Guacamole
 - Never forward 3389/5900; never set `GUACAMOLE_BIND=0.0.0.0` on the ThinkCentre
 - The Cloudflare hostname is enough for anyone on the internet to *reach* the login page — treat the URL as public
+- Treat the agent token like a password. Put Cloudflare Access on the manage hostname too.
 
 ## Local development (Linux)
 

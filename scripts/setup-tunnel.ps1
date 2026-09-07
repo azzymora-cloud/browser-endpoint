@@ -16,6 +16,7 @@
 param(
     [string]$Token,
     [string]$Hostname,
+    [string]$ManageHostname,
     [switch]$StartTunnel,
     [switch]$QuickTest
 )
@@ -72,9 +73,11 @@ Write-Host "  1. Add your domain to Cloudflare (free plan) if it is not already 
 Write-Host "  2. Open https://one.dash.cloudflare.com/ → Networks → Tunnels → Create tunnel."
 Write-Host "  3. Choose Cloudflared, name it thinkcentre, and copy the tunnel token."
   Write-Host "  4. Add a public hostname, e.g. pc.yourdomain.com → http://127.0.0.1:8080"
-Write-Host "     (If the connector is not up yet, you can add the hostname after this script.)"
-Write-Host "  5. Optional hardening: Zero Trust → Access → Applications → Self-hosted"
-Write-Host "     for that hostname, policy = your email + One-time PIN."
+Write-Host "  5. Add a second hostname for the agent, e.g. manage.yourdomain.com → http://host.docker.internal:18765"
+Write-Host "     (Agent must be installed and listening on 127.0.0.1:18765.)"
+Write-Host "     (If the connector is not up yet, you can add the hostnames after this script.)"
+Write-Host "  6. Optional hardening: Zero Trust → Access → Applications → Self-hosted"
+Write-Host "     for both hostnames, policy = your email + One-time PIN."
 Write-Host ""
 
 if (-not $Token) {
@@ -88,12 +91,18 @@ if ([string]::IsNullOrWhiteSpace($Token)) {
 }
 
 if (-not $Hostname) {
-    $Hostname = Read-Host "Public hostname (e.g. pc.example.com, or blank to skip)"
+    $Hostname = Read-Host "Desktop hostname (e.g. pc.example.com, or blank to skip)"
+}
+if (-not $ManageHostname) {
+    $ManageHostname = Read-Host "Manage hostname (e.g. manage.example.com, or blank to skip)"
 }
 
 Set-DotEnvValue -Path $envPath -Name 'CLOUDFLARE_TUNNEL_TOKEN' -Value $Token.Trim()
 if ($Hostname) {
     Set-DotEnvValue -Path $envPath -Name 'CLOUDFLARE_HOSTNAME' -Value $Hostname.Trim()
+}
+if ($ManageHostname) {
+    Set-DotEnvValue -Path $envPath -Name 'CLOUDFLARE_MANAGE_HOSTNAME' -Value $ManageHostname.Trim()
 }
 
 Write-Host ""

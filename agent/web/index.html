@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThinkCentre Endpoint</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">ThinkCentre Endpoint</p>
+      <h1>Machine control</h1>
+    </div>
+    <p class="host" id="hostLabel">Signing in…</p>
+  </header>
+
+  <main id="loginView" class="panel">
+    <h2>Agent token</h2>
+    <p class="lede">The installer wrote a token to <code>%ProgramData%\ThinkCentreEndpoint\config.json</code>. Paste it here. This page is the reboot and Wake-on-LAN console — not the remote desktop (that is Guacamole).</p>
+    <form id="loginForm">
+      <label for="token">Token</label>
+      <input id="token" name="token" type="password" autocomplete="current-password" required>
+      <p id="loginError" class="error" hidden></p>
+      <button type="submit">Open console</button>
+    </form>
+  </main>
+
+  <main id="appView" hidden>
+    <section class="grid">
+      <article class="panel">
+        <h2>This PC</h2>
+        <dl id="machineFacts"></dl>
+      </article>
+      <article class="panel">
+        <h2>Remote desktop stack</h2>
+        <p class="lede">Guacamole and the Cloudflare tunnel. Start these before you leave the house.</p>
+        <ul id="stackList" class="stack"></ul>
+        <p id="stackError" class="error" hidden></p>
+        <div class="row">
+          <button type="button" id="stackUp">Start stack</button>
+          <button type="button" class="ghost" id="stackDown">Stop stack</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>Wake on LAN</h2>
+      <p class="lede" id="wolNote"></p>
+      <table>
+        <thead>
+          <tr><th>Adapter</th><th>MAC</th><th>Addresses</th><th></th></tr>
+        </thead>
+        <tbody id="adapterBody"></tbody>
+      </table>
+      <div class="row">
+        <button type="button" id="enableWol">Enable NIC wake</button>
+        <button type="button" class="ghost" id="wakeAll">Send magic packet to this PC</button>
+      </div>
+      <pre id="wolOut" class="log" hidden></pre>
+    </section>
+
+    <section class="panel danger">
+      <h2>Reboot</h2>
+      <p class="lede">Windows will restart after a short delay so this request can finish. Use this when the desktop is wedged. After reboot, wait for Guacamole and the tunnel to come back, then sign in again.</p>
+      <p id="rebootMsg" class="flash" hidden></p>
+      <div class="row">
+        <button type="button" class="danger" id="rebootBtn">Reboot this ThinkCentre</button>
+        <button type="button" class="ghost" id="cancelReboot">Cancel pending reboot</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

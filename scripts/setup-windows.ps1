@@ -21,7 +21,8 @@ param(
 
     [switch]$SkipPower,
     [switch]$SkipUpnp,
-    [switch]$SkipDockerCheck
+    [switch]$SkipDockerCheck,
+    [switch]$SkipWol
 )
 
 $ErrorActionPreference = 'Stop'
@@ -211,6 +212,13 @@ if (-not $SkipUpnp) {
 if (-not $SkipDockerCheck) {
     Test-DockerDesktop
 }
+if (-not $SkipWol) {
+    $wol = Join-Path $PSScriptRoot 'enable-wol.ps1'
+    if (Test-Path $wol) {
+        Write-Step "Wake-on-LAN"
+        & $wol
+    }
+}
 
 Write-Step "Next"
 Write-Host "1. Copy this repo onto the ThinkCentre if it is not already here."
@@ -218,5 +226,6 @@ Write-Host "2. Copy .env.example to .env and set POSTGRES_PASSWORD."
 Write-Host "3. docker compose up -d"
 Write-Host "4. Open http://127.0.0.1:8080  (guacadmin / guacadmin — change it immediately)"
 Write-Host "5. Click ThinkCentre ($protocol), then run scripts/setup-tunnel.ps1"
+Write-Host "6. Install the agent (MSI, or scripts/install-service.ps1) for reboot + WoL control at http://127.0.0.1:18765"
 Write-Host ""
 Write-Host "Do not forward 3389 or 5900 on the router. Cloudflare Tunnel is the only way in."
