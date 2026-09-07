@@ -1,0 +1,12 @@
+# Start with: docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
+# Requires CLOUDFLARE_TUNNEL_TOKEN in .env (scripts/setup-tunnel.ps1).
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      - guacamole
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env or run scripts/setup-tunnel.ps1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

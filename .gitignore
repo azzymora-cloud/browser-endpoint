@@ -1,0 +1,10 @@
+.env
+data/
+drive/
+record/
+cloudflare/credentials.json
+cloudflare/*.json
+!cloudflare/*.example
+*.log
+.DS_Store
+Thumbs.db

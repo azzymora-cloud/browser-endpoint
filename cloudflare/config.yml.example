@@ -1,0 +1,19 @@
+# Locally-managed named tunnel (optional alternative to CLOUDFLARE_TUNNEL_TOKEN).
+# Most people should use the token from Zero Trust instead — see scripts/setup-tunnel.ps1.
+#
+# To use this file:
+#   1. cloudflared tunnel login
+#   2. cloudflared tunnel create thinkcentre
+#   3. cloudflared tunnel route dns thinkcentre pc.example.com
+#   4. Copy the credentials JSON next to this file as credentials.json
+#   5. Point the cloudflared service at this config instead of --token
+#
+# ingress service must stay on the Compose network name "guacamole:8080".
+
+tunnel: YOUR_TUNNEL_UUID
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: pc.example.com
+    service: http://guacamole:8080
+  - service: http_status:404

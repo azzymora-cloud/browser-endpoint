@@ -1,0 +1,6 @@
+This repository includes Apache Guacamole PostgreSQL schema files
+(guacamole/init/001-create-schema.sql and 002-create-admin-user.sql)
+from Apache Guacamole 1.6.0, licensed under the Apache License 2.0.
+See https://guacamole.apache.org/ and https://www.apache.org/licenses/LICENSE-2.0
+
+Project scripts, Compose files, and documentation are original to this repo.
