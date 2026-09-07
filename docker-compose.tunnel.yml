@@ -1,12 +1,14 @@
 # Start with: docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
 # Requires CLOUDFLARE_TUNNEL_TOKEN in .env (scripts/setup-tunnel.ps1).
+#
+# In Zero Trust, point the public hostname at http://127.0.0.1:8080
+# (cloudflared shares the Postgres/Guacamole network namespace).
 
 services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
+    network_mode: service:postgres
     depends_on:
       - guacamole
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env or run scripts/setup-tunnel.ps1}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"

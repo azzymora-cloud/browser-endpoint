@@ -62,7 +62,7 @@ Write-Host ""
 if ($QuickTest) {
     Write-Host "Quick test (URL changes every restart — not for daily use):"
     Write-Host "  docker compose up -d"
-    Write-Host "  docker run --rm --network thinkcentre_default cloudflare/cloudflared:latest tunnel --no-autoupdate --url http://guacamole:8080"
+    Write-Host "  docker run --rm --network container:thinkcentre-postgres-1 cloudflare/cloudflared:latest tunnel --no-autoupdate --url http://127.0.0.1:8080"
     Write-Host "Use the printed https://*.trycloudflare.com link once, then create a named tunnel."
     return
 }
@@ -71,7 +71,7 @@ Write-Host "In a browser (on this PC or your phone):"
 Write-Host "  1. Add your domain to Cloudflare (free plan) if it is not already there."
 Write-Host "  2. Open https://one.dash.cloudflare.com/ → Networks → Tunnels → Create tunnel."
 Write-Host "  3. Choose Cloudflared, name it thinkcentre, and copy the tunnel token."
-Write-Host "  4. Add a public hostname, e.g. pc.yourdomain.com → http://guacamole:8080"
+  Write-Host "  4. Add a public hostname, e.g. pc.yourdomain.com → http://127.0.0.1:8080"
 Write-Host "     (If the connector is not up yet, you can add the hostname after this script.)"
 Write-Host "  5. Optional hardening: Zero Trust → Access → Applications → Self-hosted"
 Write-Host "     for that hostname, policy = your email + One-time PIN."

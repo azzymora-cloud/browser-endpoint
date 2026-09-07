@@ -1,18 +1,16 @@
 name: thinkcentre
 
-services:
-  guacd:
-    image: guacamole/guacd:1.6.0
-    restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - drive:/drive
-      - record:/var/lib/guacamole/recordings
+# Guacamole, guacd, and (optionally) cloudflared share Postgres's network
+# namespace and talk on 127.0.0.1. That avoids a Docker bridge between them
+# and keeps RDP/VNC on the Windows host as the only off-box hop
+# (host.docker.internal).
 
+services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-guacamole}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -20,32 +18,42 @@ services:
     volumes:
       - ./guacamole/init:/docker-entrypoint-initdb.d:ro
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${GUACAMOLE_BIND:-127.0.0.1}:${GUACAMOLE_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-guacamole} -d ${POSTGRES_DB:-guacamole_db}"]
       interval: 5s
       timeout: 5s
       retries: 12
 
+  guacd:
+    image: guacamole/guacd:1.6.0
+    restart: unless-stopped
+    network_mode: service:postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - drive:/drive
+      - record:/var/lib/guacamole/recordings
+
   guacamole:
     image: guacamole/guacamole:1.6.0
     restart: unless-stopped
+    network_mode: service:postgres
     depends_on:
       postgres:
         condition: service_healthy
       guacd:
         condition: service_started
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
-      GUACD_HOSTNAME: guacd
+      GUACD_HOSTNAME: 127.0.0.1
       GUACD_PORT: 4822
-      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_HOSTNAME: 127.0.0.1
       POSTGRESQL_DATABASE: ${POSTGRES_DB:-guacamole_db}
-      POSTGRESQL_USER: ${POSTGRES_USER:-guacamole}
+      POSTGRESQL_USERNAME: ${POSTGRES_USER:-guacamole}
       POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       WEBAPP_CONTEXT: ROOT
-    ports:
-      - "${GUACAMOLE_BIND:-127.0.0.1}:${GUACAMOLE_PORT:-8080}:8080"
 
 volumes:
   postgres_data:

@@ -8,12 +8,13 @@
 #   4. Copy the credentials JSON next to this file as credentials.json
 #   5. Point the cloudflared service at this config instead of --token
 #
-# ingress service must stay on the Compose network name "guacamole:8080".
+# cloudflared shares the Postgres/Guacamole network namespace, so the
+# origin is localhost, not a Compose DNS name.
 
 tunnel: YOUR_TUNNEL_UUID
 credentials-file: /etc/cloudflared/credentials.json
 
 ingress:
   - hostname: pc.example.com
-    service: http://guacamole:8080
+    service: http://127.0.0.1:8080
   - service: http_status:404

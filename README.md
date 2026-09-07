@@ -87,7 +87,7 @@ If the local session works, expose it:
 docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
 ```
 
-The script walks through creating a **named** tunnel in [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Networks → Tunnels. Public hostname example: `pc.example.com` → `http://guacamole:8080`.
+The script walks through creating a **named** tunnel in [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Networks → Tunnels. Public hostname example: `pc.example.com` → `http://127.0.0.1:8080` (cloudflared runs in the same network namespace as Guacamole).
 
 When the connector is healthy, open `https://pc.example.com` from anywhere HTTPS works — including networks that block Parsec and VPNs.
 
