@@ -6,7 +6,7 @@
 .DESCRIPTION
   Restricted networks that block VPNs and Parsec still allow ordinary HTTPS.
   cloudflared on the ThinkCentre dials out to Cloudflare on 443. Your browser
-  opens a normal https:// hostname — no VPN client, no UPnP, no inbound ports.
+  opens a normal https:// hostname - no VPN client, no UPnP, no inbound ports.
 
   Create the named tunnel in the Cloudflare dashboard (free plan), then paste
   the token here. Optional Cloudflare Access (email one-time PIN) is configured
@@ -61,7 +61,7 @@ Write-Host "Cloudflare Tunnel setup (outbound HTTPS 443 only)"
 Write-Host ""
 
 if ($QuickTest) {
-    Write-Host "Quick test (URL changes every restart — not for daily use):"
+    Write-Host "Quick test (URL changes every restart - not for daily use):"
     Write-Host "  docker compose up -d"
     Write-Host "  docker run --rm --network container:thinkcentre-postgres-1 cloudflare/cloudflared:latest tunnel --no-autoupdate --url http://127.0.0.1:8080"
     Write-Host "Use the printed https://*.trycloudflare.com link once, then create a named tunnel."
@@ -70,10 +70,10 @@ if ($QuickTest) {
 
 Write-Host "In a browser (on this PC or your phone):"
 Write-Host "  1. Add your domain to Cloudflare (free plan) if it is not already there."
-Write-Host "  2. Open https://one.dash.cloudflare.com/ → Networks → Tunnels → Create tunnel."
+Write-Host "  2. Open https://one.dash.cloudflare.com/ -> Networks -> Tunnels -> Create tunnel."
 Write-Host "  3. Choose Cloudflared, name it thinkcentre, and copy the tunnel token."
-  Write-Host "  4. Add a public hostname, e.g. pc.yourdomain.com → http://127.0.0.1:8080"
-Write-Host "  5. Add a second hostname for the agent, e.g. manage.yourdomain.com → http://host.docker.internal:18765"
+  Write-Host "  4. Add a public hostname, e.g. pc.yourdomain.com -> http://127.0.0.1:8080"
+Write-Host "  5. Add a second hostname for the agent, e.g. manage.yourdomain.com -> http://host.docker.internal:18765"
 Write-Host "     (Agent must be installed and listening on 127.0.0.1:18765.)"
 Write-Host "     (If the connector is not up yet, you can add the hostnames after this script.)"
 Write-Host "  6. Optional hardening: Zero Trust → Access → Applications → Self-hosted"
@@ -122,6 +122,6 @@ if ($StartTunnel) {
     Write-Host "Start the tunnel when Guacamole already works on http://127.0.0.1:8080 :"
     Write-Host "  docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d"
     if ($Hostname) {
-        Write-Host "Then open https://$Hostname from any browser — including networks that block VPNs and Parsec."
+        Write-Host "Then open https://$Hostname from any browser - including networks that block VPNs and Parsec."
     }
 }
