@@ -52,9 +52,38 @@ A `trycloudflare.com` quick tunnel is only for a one-off test. The URL changes e
 
 ## Install on the ThinkCentre
 
-### MSI (agent + stack files)
+Do **not** download the `.msi` from the Cursor codebase page. That UI does not serve the installer. Clone the repo, then copy the file onto Windows.
 
-Use [`releases/ThinkCentreEndpoint-1.1.0.msi`](releases/ThinkCentreEndpoint-1.1.0.msi) on the ThinkCentre (run it **as Administrator**). Rebuild with `scripts/build-release.sh` if you change the agent.
+In **WSL** (Origin CLI is not available in PowerShell):
+
+```bash
+# Run in WSL (Origin CLI is not available in PowerShell)
+# Install the Origin CLI
+curl -fsSL https://downloads.cursor.com/origin/install.sh | sh
+
+# Sign in (also sets up git credentials)
+origin auth login
+
+# Clone the repository
+origin repo clone andrew-azael-mora/browser-endpoint
+```
+
+If `origin` is not found after install:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Then copy the installer out of WSL onto Windows (adjust the Windows username):
+
+```bash
+cd ~/browser-endpoint
+cp releases/ThinkCentreEndpoint-1.1.0.msi /mnt/c/Users/$USER/Downloads/
+explorer.exe /mnt/c/Users/$USER/Downloads
+```
+
+On the ThinkCentre, run `ThinkCentreEndpoint-1.1.0.msi` **as Administrator** (USB, share, or the same copy if this *is* the ThinkCentre).
 
 That installs to `C:\Program Files\ThinkCentre Endpoint\`, registers the **ThinkCentre Endpoint Agent** service, and turns on NIC Wake-on-LAN flags. Then:
 
@@ -64,6 +93,16 @@ That installs to `C:\Program Files\ThinkCentre Endpoint\`, registers the **Think
 4. Open the Start menu shortcut **ThinkCentre Endpoint** (`http://127.0.0.1:18765`). The token is in `%ProgramData%\ThinkCentreEndpoint\config.json`.
 5. In the console, click **Start stack**, then **Enable NIC wake**.
 6. Confirm BIOS: Wake on LAN, and After Power Loss = Power On.
+
+**No MSI:** if you cloned onto the ThinkCentre, Admin PowerShell from the repo:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\setup-windows.ps1
+.\scripts\install-service.ps1
+```
+
+That uses `releases/thinkcentre-agent.exe` from the clone. Rebuild installers with `scripts/build-release.sh` if you change the agent.
 
 From the same console you can **reboot** the PC and **send a magic packet**. A packet sent *from this PC* only helps if it is still on the LAN (sleep). If the box is fully off, send the MAC from a phone on home Wi‑Fi or from another computer:
 

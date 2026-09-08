@@ -5,6 +5,7 @@ record/
 dist/
 agent/thinkcentre-agent
 agent/thinkcentre-agent.exe
+/thinkcentre-agent.exe
 cloudflare/credentials.json
 cloudflare/*.json
 !cloudflare/*.example

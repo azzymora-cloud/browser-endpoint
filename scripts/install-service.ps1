@@ -3,7 +3,13 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $exe = Join-Path $root 'thinkcentre-agent.exe'
 if (-not (Test-Path $exe)) {
-    throw "thinkcentre-agent.exe not found next to the stack ($exe). Build it with scripts/build-release.sh or install the MSI."
+    $fromRelease = Join-Path $root 'releases\thinkcentre-agent.exe'
+    if (Test-Path $fromRelease) {
+        Copy-Item $fromRelease $exe -Force
+    }
+}
+if (-not (Test-Path $exe)) {
+    throw "thinkcentre-agent.exe not found. Clone the repo (do not download files from the website) so releases/thinkcentre-agent.exe is on disk, then re-run this script."
 }
 & $exe install
 if ($LASTEXITCODE -ne 0) { throw "agent install failed" }

@@ -26,5 +26,8 @@ python3 "$ROOT/scripts/generate-wxs.py" "$STAGE" "$ROOT/dist/ThinkCentreEndpoint
 # wixl resolves File/@Source relative to the .wxs location unless absolute.
 # generate-wxs.py writes absolute paths, which wixl accepts.
 wixl --arch x64 -o "$MSI" "$ROOT/dist/ThinkCentreEndpoint.wxs"
+mkdir -p "$ROOT/releases"
+cp "$MSI" "$ROOT/releases/"
+cp "$STAGE/thinkcentre-agent.exe" "$ROOT/releases/"
 echo "Built $MSI"
-ls -lh "$MSI" "$STAGE/thinkcentre-agent.exe"
+ls -lh "$ROOT/releases/ThinkCentreEndpoint-${VERSION}.msi" "$ROOT/releases/thinkcentre-agent.exe"
