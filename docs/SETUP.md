@@ -30,7 +30,7 @@ You will pick two hostnames, for example:
 In PowerShell:
 
 ```powershell
-git clone https://github.com/YOUR_GITHUB_USER/browser-endpoint.git
+git clone https://github.com/azzymora-cloud/browser-endpoint.git
 cd browser-endpoint
 ```
 

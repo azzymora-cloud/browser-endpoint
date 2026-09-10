@@ -48,7 +48,7 @@ Windows desktop (RDP or VNC on the PC, not on the internet)
 Admin PowerShell from a clone of this repo:
 
 ```powershell
-git clone https://github.com/YOUR_GITHUB_USER/browser-endpoint.git
+git clone https://github.com/azzymora-cloud/browser-endpoint.git
 cd browser-endpoint
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\setup-windows.ps1
