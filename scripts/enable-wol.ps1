@@ -32,7 +32,8 @@ if (-not $adapters) {
 foreach ($nic in $adapters) {
     Write-Host "Adapter: $($nic.Name)  MAC=$($nic.MacAddress)"
     try {
-        Enable-NetAdapterPowerManagement -Name $nic.Name -WakeOnMagicPacket Enabled -ErrorAction Stop
+        # WakeOnMagicPacket is a switch (-WakeOnMagicPacket), not -WakeOnMagicPacket Enabled
+        Enable-NetAdapterPowerManagement -Name $nic.Name -WakeOnMagicPacket -ErrorAction Stop
         Write-Host "  WakeOnMagicPacket enabled"
     } catch {
         Write-Host "  WakeOnMagicPacket: $($_.Exception.Message)"

@@ -17,6 +17,7 @@ type apiServer struct {
 	cfg     Config
 	started time.Time
 	ui      fs.FS
+	mon     *accessMonitor
 }
 
 func (s *apiServer) routes() http.Handler {
@@ -29,6 +30,7 @@ func (s *apiServer) routes() http.Handler {
 	mux.HandleFunc("/api/wol/enable", s.requireAuth(s.handleEnableWOL))
 	mux.HandleFunc("/api/stack/up", s.requireAuth(s.handleStackUp))
 	mux.HandleFunc("/api/stack/down", s.requireAuth(s.handleStackDown))
+	mux.HandleFunc("/api/connections", s.requireAuth(s.handleConnections))
 	mux.Handle("/", s.uiHandler())
 	return withSecurity(mux)
 }
@@ -111,22 +113,44 @@ func (s *apiServer) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		adapters = nil
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"hostname":   hostname(),
-		"os":         runtime.GOOS,
-		"arch":       runtime.GOARCH,
-		"goos":       runtime.GOOS,
-		"listen":     s.cfg.Listen,
-		"stackDir":   s.cfg.StackDir,
-		"uptime":     startedAgo(s.started),
-		"time":       nowUTC(),
-		"windows":    runtime.GOOS == "windows",
-		"canReboot":  runtime.GOOS == "windows",
-		"wolNote":    wolNote(),
-		"adapters":   adapters,
-		"stack":      stackStatus(s.cfg),
-		"rebootSec":  s.cfg.RebootDelaySec,
-	})
+	payload := map[string]any{
+		"hostname":  hostname(),
+		"os":        runtime.GOOS,
+		"arch":      runtime.GOARCH,
+		"goos":      runtime.GOOS,
+		"listen":    s.cfg.Listen,
+		"stackDir":  s.cfg.StackDir,
+		"uptime":    startedAgo(s.started),
+		"time":      nowUTC(),
+		"windows":   runtime.GOOS == "windows",
+		"canReboot": runtime.GOOS == "windows",
+		"wolNote":   wolNote(),
+		"adapters":  adapters,
+		"stack":     stackStatus(s.cfg),
+		"rebootSec": s.cfg.RebootDelaySec,
+	}
+	if s.mon != nil {
+		payload["connections"] = s.mon.Status()
+	}
+	writeJSON(w, http.StatusOK, payload)
+}
+
+func (s *apiServer) handleConnections(w http.ResponseWriter, r *http.Request) {
+	if s.mon == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"events": []any{}, "path": ""})
+		return
+	}
+	events, err := s.mon.Recent(80)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		return
+	}
+	if events == nil {
+		events = []ConnEvent{}
+	}
+	st := s.mon.Status()
+	st["events"] = events
+	writeJSON(w, http.StatusOK, st)
 }
 
 func wolNote() string {
@@ -285,12 +309,15 @@ func (s *apiServer) uiHandler() http.Handler {
 }
 
 func serveAgent(cfg Config, ui fs.FS) error {
-	s := &apiServer{cfg: cfg, started: time.Now(), ui: ui}
+	mon := newAccessMonitor(cfg)
+	go mon.Run()
+	s := &apiServer{cfg: cfg, started: time.Now(), ui: ui, mon: mon}
 	ln, err := net.Listen("tcp", cfg.Listen)
 	if err != nil {
 		return err
 	}
 	log.Printf("ThinkCentre Endpoint agent on http://%s (stack %s)", cfg.Listen, cfg.StackDir)
+	log.Printf("Connection log: %s", mon.logPath)
 	srv := &http.Server{
 		Handler:           s.routes(),
 		ReadHeaderTimeout: 8 * time.Second,

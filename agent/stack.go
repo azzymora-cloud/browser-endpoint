@@ -90,6 +90,33 @@ func runCompose(cfg Config, extra ...string) (string, error) {
 	return buf.String(), err
 }
 
+func runDocker(args ...string) (string, error) {
+	bin := findDocker()
+	if bin == "" {
+		return "", errDockerMissing
+	}
+	cmd := exec.Command(bin, args...)
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+	err := cmd.Run()
+	return buf.String(), err
+}
+
+func dockerContainerID(service string) string {
+	out, err := runDocker("ps", "-q", "--filter", "label=com.docker.compose.service="+service)
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(out, "\n") {
+		id := strings.TrimSpace(line)
+		if id != "" {
+			return id
+		}
+	}
+	return ""
+}
+
 var errDockerMissing = errString("docker is not installed or not on PATH")
 
 type errString string

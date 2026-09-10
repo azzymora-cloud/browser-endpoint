@@ -62,7 +62,7 @@ func run(args []string) error {
 		fmt.Print(out)
 		return err
 	case "version":
-		fmt.Println("thinkcentre-endpoint-agent 1.1.0")
+		fmt.Println("thinkcentre-endpoint-agent 1.2.0")
 		return nil
 	default:
 		return fmt.Errorf("unknown command %q (run|install|uninstall|wake|enable-wol|version)", args[0])

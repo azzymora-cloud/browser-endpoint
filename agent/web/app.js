@@ -96,7 +96,8 @@ function renderStatus(s) {
     fact("Agent listen", s.listen) +
     fact("Stack folder", s.stackDir) +
     fact("Reboot delay", s.rebootSec + "s") +
-    fact("Reboot from this UI", s.canReboot ? "Yes (Windows)" : "Not on this OS");
+    fact("Reboot from this UI", s.canReboot ? "Yes (Windows)" : "Not on this OS") +
+    fact("Connection log", (s.connections && s.connections.path) || "—");
 
   document.getElementById("wolNote").textContent = s.wolNote || "";
   const tb = document.getElementById("adapterBody");
@@ -160,6 +161,38 @@ function wakeButton(mac) {
   return btn;
 }
 
+function renderConnections(data) {
+  const pathEl = document.getElementById("connPath");
+  const errEl = document.getElementById("connError");
+  pathEl.textContent = data.path ? "Log file: " + data.path : "";
+  if (data.error) {
+    errEl.hidden = false;
+    errEl.textContent = data.error;
+  } else {
+    errEl.hidden = true;
+  }
+  const tb = document.getElementById("connBody");
+  tb.innerHTML = "";
+  const events = data.events || [];
+  if (!events.length) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td colspan=\"6\">No connections logged yet. Open the desktop in Guacamole or wait for the next poll.</td>";
+    tb.appendChild(tr);
+    return;
+  }
+  events.forEach((ev) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + escapeHtml(ev.ts || "") + "</td>" +
+      "<td>" + escapeHtml(ev.source || "") + "</td>" +
+      "<td>" + escapeHtml(ev.user || "—") + "</td>" +
+      "<td class=\"mac\">" + escapeHtml(ev.ip || "—") + "</td>" +
+      "<td>" + escapeHtml(ev.connection || "—") + "</td>" +
+      "<td>" + escapeHtml(ev.result || "") + (ev.detail ? " · " + escapeHtml(ev.detail) : "") + "</td>";
+    tb.appendChild(tr);
+  });
+}
+
 function fact(k, v) {
   return "<dt>" + escapeHtml(k) + "</dt><dd>" + escapeHtml(String(v ?? "—")) + "</dd>";
 }
@@ -176,10 +209,19 @@ async function refresh() {
   const s = await api("/api/status");
   showApp();
   renderStatus(s);
+  try {
+    const c = await api("/api/connections");
+    renderConnections(c);
+  } catch (err) {
+    renderConnections({ error: err.message, events: [] });
+  }
 }
 
 if (token) {
   refresh().catch(() => showLogin(""));
+  setInterval(() => {
+    if (token && !appView.hidden) refresh().catch(() => {});
+  }, 15000);
 } else {
   showLogin("");
 }

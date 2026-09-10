@@ -74,13 +74,15 @@ function New-PrivateDesktopFirewallRule {
     if ($existing) {
         Remove-NetFirewallRule -Name $Name
     }
+    # IPv4 only: New-NetFirewallRule rejects ::1 in -RemoteAddress
+    # ("unspecified, multicast, broadcast, or loopback IPv6 address").
     New-NetFirewallRule -Name $Name `
         -DisplayName $DisplayName `
         -Direction Inbound `
         -Action Allow `
         -Protocol TCP `
         -LocalPort $LocalPort `
-        -RemoteAddress @('127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16') `
+        -RemoteAddress @('127.0.0.1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16') `
         -Profile Any |
         Out-Null
 }

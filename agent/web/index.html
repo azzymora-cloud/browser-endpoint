@@ -60,6 +60,19 @@
       <pre id="wolOut" class="log" hidden></pre>
     </section>
 
+    <section class="panel">
+      <h2>Incoming connections</h2>
+      <p class="lede">The agent service writes an audit log on this PC: Guacamole sessions, Guacamole web logins, RDP accepts, and cloudflared request lines when Docker can see them. Nothing new is opened on the network.</p>
+      <p class="lede" id="connPath"></p>
+      <p id="connError" class="error" hidden></p>
+      <table>
+        <thead>
+          <tr><th>When (UTC)</th><th>Source</th><th>User</th><th>IP</th><th>Connection</th><th>Result</th></tr>
+        </thead>
+        <tbody id="connBody"></tbody>
+      </table>
+    </section>
+
     <section class="panel danger">
       <h2>Reboot</h2>
       <p class="lede">Windows will restart after a short delay so this request can finish. Use this when the desktop is wedged. After reboot, wait for Guacamole and the tunnel to come back, then sign in again.</p>
