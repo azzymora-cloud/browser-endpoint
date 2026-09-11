@@ -1,11 +1,11 @@
--- Seed browser connections for the ThinkCentre desktop.
+-- Seed browser connections for this Windows desktop.
 -- Credentials are not stored: Guacamole prompts at connect time.
 -- Use RDP on Windows Pro/Enterprise; use VNC on Windows Home.
 
 INSERT INTO guacamole_connection (connection_name, protocol)
 VALUES
-    ('ThinkCentre (RDP)', 'rdp'),
-    ('ThinkCentre (VNC)', 'vnc');
+    ('Cybertron (RDP)', 'rdp'),
+    ('Cybertron (VNC)', 'vnc');
 
 -- RDP: Docker Desktop reaches the Windows host via host.docker.internal.
 INSERT INTO guacamole_connection_parameter (connection_id, parameter_name, parameter_value)
@@ -21,7 +21,7 @@ CROSS JOIN (
         ('enable-font-smoothing', 'true'),
         ('disable-audio', 'true')
 ) AS params(parameter_name, parameter_value)
-WHERE connection_name = 'ThinkCentre (RDP)';
+WHERE connection_name = 'Cybertron (RDP)';
 
 INSERT INTO guacamole_connection_parameter (connection_id, parameter_name, parameter_value)
 SELECT connection_id, parameter_name, parameter_value
@@ -31,7 +31,7 @@ CROSS JOIN (
         ('hostname', 'host.docker.internal'),
         ('port', '5900')
 ) AS params(parameter_name, parameter_value)
-WHERE connection_name = 'ThinkCentre (VNC)';
+WHERE connection_name = 'Cybertron (VNC)';
 
 -- Grant guacadmin full access to both connections.
 INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
@@ -45,4 +45,4 @@ CROSS JOIN (
 ) AS perms(permission)
 WHERE guacamole_entity.name = 'guacadmin'
   AND guacamole_entity.type = 'USER'
-  AND guacamole_connection.connection_name IN ('ThinkCentre (RDP)', 'ThinkCentre (VNC)');
+  AND guacamole_connection.connection_name IN ('Cybertron (RDP)', 'Cybertron (VNC)');
