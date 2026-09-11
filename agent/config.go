@@ -13,7 +13,7 @@ import (
 const (
 	serviceName = "ThinkCentreEndpoint"
 	serviceDisp = "ThinkCentre Endpoint Agent"
-	serviceDesc = "Manages the ThinkCentre browser remote stack, connection audit log, Wake-on-LAN, and reboot."
+	serviceDesc = "Manages the ThinkCentre browser remote stack, connection audit log, Wake-on-LAN, reboot, and session HUD kill switch."
 	defaultPort = "18765"
 )
 

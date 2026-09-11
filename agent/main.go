@@ -61,11 +61,13 @@ func run(args []string) error {
 		out, err := enableWakeOnLAN(cfg)
 		fmt.Print(out)
 		return err
+	case "hud-kill":
+		return runHudKill(args[1:])
 	case "version":
-		fmt.Println("thinkcentre-endpoint-agent 1.2.0")
+		fmt.Println("thinkcentre-endpoint-agent 1.3.0")
 		return nil
 	default:
-		return fmt.Errorf("unknown command %q (run|install|uninstall|wake|enable-wol|version)", args[0])
+		return fmt.Errorf("unknown command %q (run|install|uninstall|wake|enable-wol|hud-kill|version)", args[0])
 	}
 }
 

@@ -31,6 +31,8 @@ func (s *apiServer) routes() http.Handler {
 	mux.HandleFunc("/api/stack/up", s.requireAuth(s.handleStackUp))
 	mux.HandleFunc("/api/stack/down", s.requireAuth(s.handleStackDown))
 	mux.HandleFunc("/api/connections", s.requireAuth(s.handleConnections))
+	mux.HandleFunc("/api/hud/foreground", s.handleHudForeground)
+	mux.HandleFunc("/api/hud/kill-foreground", s.handleHudKillForeground)
 	mux.Handle("/", s.uiHandler())
 	return withSecurity(mux)
 }
@@ -285,6 +287,36 @@ func (s *apiServer) handleStackDown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "output": out})
+}
+
+func (s *apiServer) handleHudForeground(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "GET required"})
+		return
+	}
+	result := hudInspectFromService()
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *apiServer) handleHudKillForeground(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "POST required"})
+		return
+	}
+	var body struct {
+		Confirm string `json:"confirm"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if !strings.EqualFold(body.Confirm, "kill") {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "confirm must be \"kill\""})
+		return
+	}
+	result := hudKillFromService()
+	status := http.StatusOK
+	if !result.OK {
+		status = http.StatusConflict
+	}
+	writeJSON(w, status, result)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

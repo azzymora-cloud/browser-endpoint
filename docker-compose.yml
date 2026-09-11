@@ -54,6 +54,20 @@ services:
       POSTGRESQL_USERNAME: ${POSTGRES_USER:-guacamole}
       POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       WEBAPP_CONTEXT: ROOT
+    volumes:
+      # After Tomcat generates CATALINA_BASE, move it to 8081 so nginx can own 8080.
+      - ./guacamole/entrypoint.d/550-listen-8081.sh:/opt/guacamole/entrypoint.d/550-listen-8081.sh:ro
+
+  hud:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    network_mode: service:postgres
+    depends_on:
+      guacamole:
+        condition: service_started
+    volumes:
+      - ./guacamole/hud/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./guacamole/hud/static:/usr/share/nginx/html/session-hud:ro
 
 volumes:
   postgres_data:

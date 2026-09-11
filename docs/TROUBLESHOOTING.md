@@ -54,6 +54,24 @@ Install the service from the clone that contains `releases/thinkcentre-agent.exe
 
 Token is in `%ProgramData%\ThinkCentreEndpoint\config.json`. The connection log is `%ProgramData%\ThinkCentreEndpoint\logs\connections.jsonl`.
 
+## Session HUD missing / kill switch fails
+
+The overlay only appears after you open a connection (`#/client/…`). A **P** button should sit at the top center.
+
+1. Recreate Guacamole and the HUD proxy so Tomcat is on 8081 and nginx owns 8080:
+
+   ```powershell
+   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d --force-recreate guacamole hud
+   ```
+
+2. The kill option needs the **ThinkCentre Endpoint** agent service. Build/update it:
+
+   ```powershell
+   .\scripts\update-agent.ps1
+   ```
+
+3. If the button says the agent is unreachable, open `http://127.0.0.1:18765` and confirm the service is running.
+
 ## Wake-on-LAN does nothing
 
 - BIOS: Wake on LAN enabled, After Power Loss = Power On

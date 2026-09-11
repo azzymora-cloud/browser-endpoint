@@ -4,7 +4,7 @@ Turn an always-on **Windows PC** into a desktop you open from **any browser** �
 
 The PC stays a normal Windows machine. [Apache Guacamole](https://guacamole.apache.org/) paints the desktop in HTML5. [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) carries that page over **outbound HTTPS on port 443**. You never forward RDP, never enable UPnP, and you do not install a VPN on the laptop or phone you are borrowing.
 
-This repository is the full stack: Compose files, Windows setup scripts, a small management agent (reboot, Wake-on-LAN, connection audit log), and the Cloudflare pieces.
+This repository is the full stack: Compose files, Windows setup scripts, a small management agent (reboot, Wake-on-LAN, connection audit log, session kill switch), and the Cloudflare pieces.
 
 **From-scratch walkthrough for a friend:** [docs/SETUP.md](docs/SETUP.md)
 
@@ -66,7 +66,7 @@ Then expose it with a named Cloudflare Tunnel (see [docs/CLOUDFLARE.md](docs/CLO
 docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
 ```
 
-Install the management agent (connection log, stack start/stop, reboot, Wake-on-LAN):
+Install the management agent (connection log, stack start/stop, reboot, Wake-on-LAN, session HUD kill switch):
 
 ```powershell
 .\scripts\install-service.ps1
@@ -97,16 +97,17 @@ The RDP password is the **Windows** password, not `guacadmin`. On Pro, signing i
 
 | Path | Role |
 |---|---|
-| `docker-compose.yml` | `guacd`, Postgres, Guacamole (localhost only) |
+| `docker-compose.yml` | `guacd`, Postgres, Guacamole, session HUD nginx (localhost only) |
 | `docker-compose.tunnel.yml` | `cloudflared` overlay (needs `CLOUDFLARE_TUNNEL_TOKEN`) |
 | `guacamole/init/` | Official Guacamole 1.6.0 schema plus desktop connection seeds |
+| `guacamole/hud/` | Parsec-style overlay: Ctrl+Alt+Del, captive mouse, kill focused app |
 | `guacamole/connection-template.md` | RDP/VNC settings if you add connections by hand |
 | `scripts/setup-windows.ps1` | Home vs Pro, firewall, always-on power, UPnP off, WoL |
 | `scripts/enable-wol.ps1` | NIC magic-packet wake + BIOS checklist |
 | `scripts/setup-tunnel.ps1` | Save the named-tunnel token |
 | `scripts/install-service.ps1` | Windows service + logon task for the stack |
 | `scripts/build-release.sh` | Windows agent `.exe` + MSI |
-| `agent/` | Management service (status, stack, reboot, WoL, connection log) |
+| `agent/` | Management service (status, stack, reboot, WoL, connection log, HUD kill switch) |
 | `releases/thinkcentre-agent.exe` | Prebuilt agent used by `install-service.ps1` |
 | `cloudflare/config.yml.example` | Locally-managed tunnel (token method is preferred) |
 | `.env.example` | Secrets template — copy to `.env`, never commit `.env` |
@@ -129,6 +130,16 @@ The agent service polls Guacamole history, Guacamole web logins, local RDP accep
 ```
 
 The same events appear in the agent console under **Incoming connections**. Nothing extra is opened on the network.
+
+## Session HUD (while connected)
+
+A small **P** control sits at the top center of the desktop view (Guacamole client page), similar to Parsec’s overlay:
+
+- **Ctrl+Alt+Del** — sends that key combination into the remote session
+- **Captive mouse** — pointer-locks the cursor so it cannot leave the browser window (Esc releases it)
+- **Kill focused app** — the Windows agent force-stops the process that owns the foreground window, for when an app freezes and blocks input. Explorer and other shell processes are refused
+
+The kill switch talks to the agent on loopback (`127.0.0.1:18765`) through nginx. Update the agent after pulling this change (`scripts/update-agent.ps1` as Administrator).
 
 ## Security
 
