@@ -40,8 +40,13 @@
   letter-spacing: -0.04em;
 }
 
-#session-hud .hud-toggle:hover {
+#session-hud .hud-toggle:hover,
+#session-hud .hud-toggle.aim {
   background: #ff7b2e;
+}
+
+#session-hud.immersive .hud-toggle {
+  box-shadow: 0 0 0 2px #f4f1ec, 0 0 0 4px #e85d04;
 }
 
 #session-hud .hud-actions {
@@ -62,7 +67,8 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-#session-hud .hud-actions button:hover {
+#session-hud .hud-actions button:hover,
+#session-hud .hud-actions button.aim {
   background: rgba(255, 255, 255, 0.14);
 }
 
@@ -88,13 +94,22 @@
   pointer-events: none;
 }
 
-#session-hud-lock {
+#session-hud-aim {
   position: fixed;
-  inset: 0;
-  z-index: 2147482990;
-  cursor: none;
+  top: 0;
+  left: 0;
+  z-index: 2147483001;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid #f4f1ec;
+  border-radius: 50%;
+  background: #e85d04;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
 }
 
-#session-hud-lock[hidden] {
+#session-hud-aim[hidden] {
   display: none !important;
 }
+

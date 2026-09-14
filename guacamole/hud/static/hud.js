@@ -6,12 +6,16 @@
   var KEY_DEL = 0xFFFF;
 
   var hud = null;
-  var lockLayer = null;
-  var captive = false;
-  var mouseX = 0;
-  var mouseY = 0;
+  var aimCursor = null;
+  var immersive = false;
+  var exiting = false;
+  var arming = false;
+  var viewX = 0;
+  var viewY = 0;
+  var haveMouse = false;
   var buttons = { left: false, middle: false, right: false, up: false, down: false };
   var toastTimer = 0;
+  var aimedButton = null;
 
   function onClientPage() {
     return /#\/client\//.test(location.hash || "");
@@ -35,14 +39,18 @@
     return null;
   }
 
-  function displayBox() {
+  function displayElement() {
     var client = findGuacClient();
     if (client && client.getDisplay) {
       var el = client.getDisplay().getElement();
-      if (el) return el.getBoundingClientRect();
+      if (el) return el;
     }
-    var fallback = document.querySelector(".display");
-    return fallback ? fallback.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    return document.querySelector(".display");
+  }
+
+  function displayBox() {
+    var el = displayElement();
+    return el ? el.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
   }
 
   function sendKeys(down, keysyms) {
@@ -64,12 +72,15 @@
     }, 40);
   }
 
-  function mouseState() {
+  function mouseStateFromView() {
     var G = window.Guacamole;
     if (!G || !G.Mouse || !G.Mouse.State) return null;
+    var box = displayBox();
+    var x = Math.max(0, Math.min(Math.max(0, box.width - 1), viewX - box.left));
+    var y = Math.max(0, Math.min(Math.max(0, box.height - 1), viewY - box.top));
     return new G.Mouse.State({
-      x: mouseX,
-      y: mouseY,
+      x: x,
+      y: y,
       left: buttons.left,
       middle: buttons.middle,
       right: buttons.right,
@@ -80,15 +91,9 @@
 
   function sendMouse() {
     var client = findGuacClient();
-    var state = mouseState();
+    var state = mouseStateFromView();
     if (!client || !state) return;
     client.sendMouseState(state, true);
-  }
-
-  function clampMouse(dx, dy) {
-    var box = displayBox();
-    mouseX = Math.max(0, Math.min(box.width - 1, mouseX + dx));
-    mouseY = Math.max(0, Math.min(box.height - 1, mouseY + dy));
   }
 
   function toast(msg) {
@@ -97,46 +102,209 @@
     el.hidden = false;
     el.textContent = msg;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.hidden = true; }, 3200);
+    toastTimer = setTimeout(function () { el.hidden = true; }, 4200);
   }
 
-  function setCaptive(on) {
-    captive = !!on;
-    var btn = hud && hud.querySelector("[data-action=captive]");
-    if (btn) btn.classList.toggle("active", captive);
-    if (!lockLayer) return;
-    if (!captive) {
-      lockLayer.hidden = true;
-      if (document.pointerLockElement) document.exitPointerLock();
-      buttons.left = buttons.middle = buttons.right = false;
+  function pointInRect(x, y, rect, pad) {
+    pad = pad || 0;
+    return x >= rect.left - pad && x <= rect.right + pad &&
+      y >= rect.top - pad && y <= rect.bottom + pad;
+  }
+
+  function hudShellRect() {
+    if (!hud) return null;
+    var shell = hud.querySelector(".hud-shell");
+    return shell ? shell.getBoundingClientRect() : null;
+  }
+
+  function visibleHudButtons() {
+    if (!hud) return [];
+    return Array.prototype.filter.call(hud.querySelectorAll("button"), function (btn) {
+      var r = btn.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    });
+  }
+
+  function hudButtonAt(x, y) {
+    var list = visibleHudButtons();
+    for (var i = 0; i < list.length; i++) {
+      if (pointInRect(x, y, list[i].getBoundingClientRect(), 2)) return list[i];
+    }
+    return null;
+  }
+
+  function overHud(x, y) {
+    var shell = hudShellRect();
+    return !!(shell && pointInRect(x, y, shell, 6));
+  }
+
+  function nearHud(x, y) {
+    var shell = hudShellRect();
+    return !!(shell && pointInRect(x, y, shell, 48));
+  }
+
+  function setAimedButton(btn) {
+    if (aimedButton === btn) return;
+    if (aimedButton) aimedButton.classList.remove("aim");
+    aimedButton = btn;
+    if (aimedButton) aimedButton.classList.add("aim");
+  }
+
+  function updateAimCursor() {
+    if (!aimCursor) return;
+    var show = immersive && document.pointerLockElement && nearHud(viewX, viewY);
+    aimCursor.hidden = !show;
+    if (!show) {
+      setAimedButton(null);
       return;
     }
-    var box = displayBox();
-    mouseX = box.width / 2;
-    mouseY = box.height / 2;
-    lockLayer.hidden = false;
-    lockLayer.requestPointerLock();
-    toast("Captive mouse on — Esc to release");
+    aimCursor.style.transform = "translate(" + viewX + "px, " + viewY + "px)";
+    setAimedButton(hudButtonAt(viewX, viewY));
   }
 
-  function onLockChange() {
-    if (!captive) return;
-    if (!document.pointerLockElement) {
-      setCaptive(false);
-      toast("Captive mouse off");
+  function clampView(dx, dy) {
+    viewX = Math.max(0, Math.min(window.innerWidth - 1, viewX + dx));
+    viewY = Math.max(0, Math.min(window.innerHeight - 1, viewY + dy));
+  }
+
+  function syncHudState() {
+    if (!hud) return;
+    hud.classList.toggle("immersive", immersive);
+    if (immersive) hud.classList.add("open");
+    var btn = hud.querySelector("[data-action=immersive]");
+    if (btn) {
+      btn.classList.toggle("active", immersive);
+      btn.setAttribute("aria-pressed", immersive ? "true" : "false");
+    }
+    if (!immersive) {
+      setAimedButton(null);
+      if (aimCursor) aimCursor.hidden = true;
     }
   }
 
-  function onLockMouse(ev) {
-    if (!captive) return;
+  function lockPointer() {
+    var el = displayElement() || document.documentElement;
+    if (!el || typeof el.requestPointerLock !== "function") return;
+    try {
+      var result = el.requestPointerLock({ unadjustedMovement: true });
+      if (result && typeof result.catch === "function") {
+        result.catch(function () { el.requestPointerLock(); });
+      }
+    } catch (err) {
+      el.requestPointerLock();
+    }
+  }
+
+  function seedViewFromLastMouse() {
+    if (haveMouse) return;
+    var box = displayBox();
+    viewX = box.left + box.width / 2;
+    viewY = box.top + box.height / 2;
+    haveMouse = true;
+  }
+
+  function enterImmersive() {
+    if (immersive) return;
+    if (!findGuacClient()) {
+      toast("Connect a desktop first");
+      return;
+    }
+
+    immersive = true;
+    arming = true;
+    syncHudState();
+    seedViewFromLastMouse();
+    lockPointer();
+    toast("Immersive on — mouse stays in the stream. Move up to P to exit. Ctrl+Alt+I also works");
+  }
+
+  function exitImmersive(msg) {
+    if (!immersive && !document.pointerLockElement) {
+      syncHudState();
+      return;
+    }
+    immersive = false;
+    exiting = true;
+    arming = false;
+    buttons.left = buttons.middle = buttons.right = false;
+    try { sendMouse(); } catch (err) { /* session may already be gone */ }
+    if (document.pointerLockElement) document.exitPointerLock();
+    syncHudState();
+    exiting = false;
+    if (msg) toast(msg);
+  }
+
+  function setImmersive(on) {
+    if (on) enterImmersive();
+    else exitImmersive("Immersive mode off");
+  }
+
+  function onPointerLockChange() {
+    if (exiting) return;
+    if (arming && document.pointerLockElement) {
+      arming = false;
+      return;
+    }
+    if (arming) return;
+    if (immersive && !document.pointerLockElement) {
+      exitImmersive("Immersive mode off");
+    }
+  }
+
+  function onPointerLockError() {
+    arming = false;
+    if (!immersive) return;
+    immersive = false;
+    syncHudState();
+    toast("Could not lock the mouse — click the desktop and try Immersive again");
+  }
+
+  function isToggleHotkey(ev) {
+    return ev.ctrlKey && ev.altKey && !ev.shiftKey && !ev.metaKey &&
+      (ev.code === "KeyI" || ev.key === "i" || ev.key === "I");
+  }
+
+  function onKeyDown(ev) {
+    if (!onClientPage()) return;
+    if (!isToggleHotkey(ev)) return;
     ev.preventDefault();
-    ev.stopPropagation();
+    ev.stopImmediatePropagation();
+    setImmersive(!immersive);
+  }
+
+  function trackUnlockedMouse(ev) {
+    if (document.pointerLockElement) return;
+    viewX = ev.clientX;
+    viewY = ev.clientY;
+    haveMouse = true;
+  }
+
+  function dispatchHudClick(btn) {
+    if (!btn) return;
+    btn.click();
+  }
+
+  function onLockedInput(ev) {
+    if (!immersive || !document.pointerLockElement) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+
+    if (ev.type === "contextmenu") return;
+
     if (ev.type === "mousemove") {
-      clampMouse(ev.movementX || 0, ev.movementY || 0);
+      clampView(ev.movementX || 0, ev.movementY || 0);
+      updateAimCursor();
+      if (overHud(viewX, viewY)) return;
       sendMouse();
       return;
     }
+
     if (ev.type === "mousedown" || ev.type === "mouseup") {
+      var hudBtn = hudButtonAt(viewX, viewY);
+      if (hudBtn || overHud(viewX, viewY)) {
+        if (ev.type === "mousedown" && ev.button === 0) dispatchHudClick(hudBtn);
+        return;
+      }
       var down = ev.type === "mousedown";
       if (ev.button === 0) buttons.left = down;
       if (ev.button === 1) buttons.middle = down;
@@ -144,7 +312,9 @@
       sendMouse();
       return;
     }
+
     if (ev.type === "wheel") {
+      if (overHud(viewX, viewY)) return;
       var wheelDown = ev.deltaY > 0;
       buttons.up = !wheelDown;
       buttons.down = wheelDown;
@@ -205,34 +375,38 @@
         '<button type="button" class="hud-toggle" title="Session controls">P</button>' +
         '<div class="hud-actions">' +
           '<button type="button" data-action="cad">Ctrl+Alt+Del</button>' +
-          '<button type="button" data-action="captive">Captive mouse</button>' +
+          '<button type="button" data-action="immersive" aria-pressed="false" title="Lock mouse to the stream (Ctrl+Alt+I)">Immersive</button>' +
           '<button type="button" class="danger" data-action="kill">Kill focused app</button>' +
         '</div>' +
       '</div>' +
       '<div class="hud-toast" hidden></div>';
     document.body.appendChild(hud);
 
-    lockLayer = document.createElement("div");
-    lockLayer.id = "session-hud-lock";
-    lockLayer.hidden = true;
-    document.body.appendChild(lockLayer);
+    aimCursor = document.createElement("div");
+    aimCursor.id = "session-hud-aim";
+    aimCursor.hidden = true;
+    document.body.appendChild(aimCursor);
 
     hud.querySelector(".hud-toggle").addEventListener("click", function () {
+      if (immersive) {
+        setImmersive(false);
+        return;
+      }
       hud.classList.toggle("open");
     });
     hud.querySelector("[data-action=cad]").addEventListener("click", sendCAD);
-    hud.querySelector("[data-action=captive]").addEventListener("click", function () {
-      setCaptive(!captive);
+    hud.querySelector("[data-action=immersive]").addEventListener("click", function () {
+      setImmersive(!immersive);
     });
     hud.querySelector("[data-action=kill]").addEventListener("click", killForeground);
 
+    document.addEventListener("mousemove", trackUnlockedMouse, true);
     ["mousemove", "mousedown", "mouseup", "wheel", "contextmenu"].forEach(function (type) {
-      lockLayer.addEventListener(type, function (ev) {
-        if (type === "contextmenu") ev.preventDefault();
-        onLockMouse(ev);
-      });
+      document.addEventListener(type, onLockedInput, true);
     });
-    document.addEventListener("pointerlockchange", onLockChange);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("pointerlockchange", onPointerLockChange);
+    document.addEventListener("pointerlockerror", onPointerLockError);
     return hud;
   }
 
@@ -242,7 +416,7 @@
     hud.hidden = !show;
     if (!show) {
       hud.classList.remove("open");
-      setCaptive(false);
+      exitImmersive();
     }
   }
 

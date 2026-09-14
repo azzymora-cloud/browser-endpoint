@@ -100,7 +100,7 @@ The RDP password is the **Windows** password, not `guacadmin`. On Pro, signing i
 | `docker-compose.yml` | `guacd`, Postgres, Guacamole, session HUD nginx (localhost only) |
 | `docker-compose.tunnel.yml` | `cloudflared` overlay (needs `CLOUDFLARE_TUNNEL_TOKEN`) |
 | `guacamole/init/` | Official Guacamole 1.6.0 schema plus desktop connection seeds |
-| `guacamole/hud/` | Parsec-style overlay: Ctrl+Alt+Del, captive mouse, kill focused app |
+| `guacamole/hud/` | Parsec-style overlay: Ctrl+Alt+Del, immersive mode, kill focused app |
 | `guacamole/connection-template.md` | RDP/VNC settings if you add connections by hand |
 | `scripts/setup-windows.ps1` | Home vs Pro, firewall, always-on power, UPnP off, WoL |
 | `scripts/enable-wol.ps1` | NIC magic-packet wake + BIOS checklist |
@@ -135,8 +135,8 @@ The same events appear in the agent console under **Incoming connections**. Noth
 
 A small **P** control sits at the top center of the desktop view (Guacamole client page), similar to Parsec’s overlay:
 
-- **Ctrl+Alt+Del** — sends that key combination into the remote session
-- **Captive mouse** — pointer-locks the cursor so it cannot leave the browser window (Esc releases it)
+- **Ctrl+Alt+Del** — sends that key combination into the remote session (browsers cannot capture the real combo)
+- **Immersive** — locks the mouse to the stream (no fullscreen). Move the pointer up to the **P** overlay to open controls or click **P** to exit. **Ctrl+Alt+I** also toggles. Chrome cannot capture Win / Alt+Tab without fullscreen, so those still hit the client PC
 - **Kill focused app** — the Windows agent force-stops the process that owns the foreground window, for when an app freezes and blocks input. Explorer and other shell processes are refused
 
 The kill switch talks to the agent on loopback (`127.0.0.1:18765`) through nginx. Update the agent after pulling this change (`scripts/update-agent.ps1` as Administrator).

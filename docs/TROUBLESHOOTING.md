@@ -72,6 +72,15 @@ The overlay only appears after you open a connection (`#/client/…`). A **P** b
 
 3. If the button says the agent is unreachable, open `http://127.0.0.1:18765` and confirm the service is running.
 
+## Immersive mode and the Windows key
+
+Immersive mode does **not** use fullscreen. That keeps the **P** overlay clickable, but Chrome/Edge will only capture Win / Alt+Tab during JavaScript fullscreen, so those keys still hit the client PC.
+
+- Move the mouse to the top-center **P** (an orange aim dot appears) and click it to exit
+- **Ctrl+Alt+I** also toggles immersive
+- **Esc** releases the mouse lock
+- Ctrl+Alt+Del still needs the HUD button — no webpage can intercept that combo
+
 ## Wake-on-LAN does nothing
 
 - BIOS: Wake on LAN enabled, After Power Loss = Power On
